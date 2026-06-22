@@ -1,8 +1,8 @@
 export const site = {
   name: 'Panda Restaurant',
   tagline: 'Authentic Maldivian Flavours',
-  phone: '+960 330 1234',
-  whatsapp: '+960 777 1234',
+  phone: '+960 791 0210',
+  whatsapp: '+960 791 0210',
   email: 'hello@pandarestaurant.mv',
   address: 'Himandhoo Island, Alifu Alifu (North Ari) Atoll, Maldives',
   hours: [
