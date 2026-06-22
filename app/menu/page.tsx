@@ -2,7 +2,6 @@ import type { Metadata } from 'next'
 import { getMenu } from '@/lib/menu'
 import { MenuItemCard } from '@/components/menu-item-card'
 import { CategoryNav } from '@/components/menu/category-nav'
-import { Info } from 'lucide-react'
 
 export const metadata: Metadata = {
   title: 'Menu | Panda Restaurant',
@@ -14,7 +13,8 @@ export const metadata: Metadata = {
 export const revalidate = 60
 
 export default async function MenuPage() {
-  const { categories, usingFallback } = await getMenu()
+  const { categories } = await getMenu()
+
   const navCategories = categories
     .filter((c) => c.items.length > 0)
     .map((c) => ({ slug: c.slug, name: c.name }))
@@ -39,21 +39,6 @@ export default async function MenuPage() {
       <CategoryNav categories={navCategories} />
 
       <div className="mx-auto max-w-3xl px-4 py-12 md:py-16">
-        {usingFallback && (
-          <div className="mb-8 flex items-start gap-3 rounded-xl border border-accent/30 bg-accent/10 p-4 text-sm text-foreground">
-            <Info className="mt-0.5 size-4 shrink-0 text-accent" />
-            <p>
-              Showing sample menu data. Connect your Supabase project (add{' '}
-              <code className="rounded bg-background px-1 py-0.5 text-xs">NEXT_PUBLIC_SUPABASE_URL</code>{' '}
-              and{' '}
-              <code className="rounded bg-background px-1 py-0.5 text-xs">
-                NEXT_PUBLIC_SUPABASE_ANON_KEY
-              </code>
-              ) and run the SQL scripts to load your live menu.
-            </p>
-          </div>
-        )}
-
         <div className="flex flex-col gap-14">
           {categories
             .filter((c) => c.items.length > 0)
@@ -69,6 +54,7 @@ export default async function MenuPage() {
                     </p>
                   )}
                 </div>
+
                 <div className="mt-2">
                   {category.items.map((item) => (
                     <MenuItemCard key={item.id} item={item} />
