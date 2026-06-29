@@ -5,6 +5,10 @@ export function formatMVR(price: number) {
   })}`
 }
 
+// Alias used across the ordering/admin UI.
+export const formatMvr = formatMVR
+export const formatDateTime = formatTime
+
 export function formatTime(value: string | null | undefined) {
   if (!value) return ''
   const d = new Date(value)

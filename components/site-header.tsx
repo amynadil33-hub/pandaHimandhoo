@@ -3,7 +3,7 @@
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { useState } from 'react'
-import { Menu, X, Phone } from 'lucide-react'
+import { Menu, X, ShoppingBag } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { navLinks, site } from '@/lib/site'
@@ -49,13 +49,9 @@ export function SiteHeader() {
         </nav>
 
         <div className="hidden md:block">
-          <Button
-            render={<a href={`tel:${site.phone.replace(/\s/g, '')}`} />}
-            nativeButton={false}
-            className="rounded-full"
-          >
-            <Phone className="size-4" />
-            Call to Order
+          <Button render={<Link href="/order" />} nativeButton={false} className="rounded-full">
+            <ShoppingBag className="size-4" />
+            Order Online
           </Button>
         </div>
 
@@ -90,12 +86,12 @@ export function SiteHeader() {
               )
             })}
             <Button
-              render={<a href={`tel:${site.phone.replace(/\s/g, '')}`} />}
+              render={<Link href="/order" onClick={() => setOpen(false)} />}
               nativeButton={false}
               className="mt-2 rounded-full"
             >
-              <Phone className="size-4" />
-              Call to Order
+              <ShoppingBag className="size-4" />
+              Order Online
             </Button>
           </nav>
         </div>
