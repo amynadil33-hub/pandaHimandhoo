@@ -11,7 +11,7 @@ values
   ('Fried Rice & Noodles', 'fried-rice-noodles',   'Wok-tossed rice and noodle bowls, made fresh.',              3, true),
   ('Kothu Roshi',          'kothu-roshi',          'Chopped roshi stir-fried with your choice of filling.',      4, true),
   ('Biryani & Rice Meals', 'biryani-rice-meals',   'Fragrant biryanis and hearty rice bowls.',                   5, true),
-  ('Pasta',                'pasta',                'Western pasta favourites with a island twist.',              6, true),
+  ('Pasta',                'pasta',                'Western pasta favourites with an island twist.',             6, true),
   ('Sandwiches & Snacks',  'sandwiches-snacks',    'Quick bites, sandwiches, and shareable snacks.',             7, true),
   ('Drinks',               'drinks',               'Fresh juices, hot drinks, and refreshments.',                8, true)
 on conflict (slug) do nothing;
