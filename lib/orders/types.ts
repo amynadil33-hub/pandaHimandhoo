@@ -1,6 +1,6 @@
 // Shared types and constants for the Panda Restaurant ordering system.
 
-export type OrderType = "dine_in" | "takeaway" | "delivery";
+export type OrderType = "dine_in" | "takeaway" | "delivery" | "online";
 
 export type OrderStatus =
   | "payment_pending"
@@ -110,6 +110,7 @@ export const ORDER_TYPE_LABELS: Record<OrderType, string> = {
   dine_in: "Dine-in",
   takeaway: "Takeaway",
   delivery: "Delivery",
+  online: "Online",
 };
 
 export const ORDER_STATUS_LABELS: Record<OrderStatus, string> = {
@@ -179,6 +180,7 @@ export const NEXT_STATUS_FOR_TYPE: Record<OrderType, OrderStatus[]> = {
     "out_for_delivery",
     "completed",
   ],
+  online: ["new", "confirmed", "preparing", "ready", "completed"],
 };
 
 export function isActiveStatus(status: OrderStatus) {

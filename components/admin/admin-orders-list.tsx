@@ -21,8 +21,10 @@ const STATUS_FILTERS: ("all" | "active" | OrderStatus)[] = [
   "active",
   "payment_pending",
   "new",
+  "confirmed",
   "preparing",
   "ready",
+  "out_for_delivery",
   "completed",
   "cancelled",
 ];
@@ -30,6 +32,7 @@ const STATUS_FILTERS: ("all" | "active" | OrderStatus)[] = [
 const TYPE_FILTERS: ("all" | OrderType)[] = [
   "all",
   "dine_in",
+  "online",
   "takeaway",
   "delivery",
 ];
@@ -127,6 +130,8 @@ export function AdminOrdersList() {
         (payload) => {
           const orderId =
             typeof payload.new.id === "string" ? payload.new.id : null;
+          const orderType = typeof payload.new.order_type === "string" ? payload.new.order_type : null;
+          if (!["dine_in", "takeaway", "delivery", "online"].includes(orderType ?? "")) return;
           mutate();
           if (orderId) {
             knownOrderIds.current.add(orderId);

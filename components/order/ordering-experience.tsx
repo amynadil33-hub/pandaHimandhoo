@@ -102,7 +102,7 @@ export function OrderingExperience({
           delivery_address: orderType === 'delivery' ? details.delivery_address : null,
           delivery_landmark: orderType === 'delivery' ? details.delivery_landmark : null,
           delivery_notes: orderType === 'delivery' ? details.delivery_notes : null,
-          pickup_time: orderType === 'dine_in' ? null : pickupTime,
+          pickup_time: orderType === 'takeaway' || orderType === 'delivery' ? pickupTime : null,
           payment_method: method,
           notes: details.notes || null,
           slip_image_url: slip,

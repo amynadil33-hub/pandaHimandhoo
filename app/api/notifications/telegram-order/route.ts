@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { isAdmin } from "@/lib/admin-auth";
+import { getOrder, notifyOrder } from "@/lib/orders/store";
 import {
   sendTelegramOrderNotification,
   type TelegramOrderPayload,
@@ -8,10 +8,6 @@ import {
 export const dynamic = "force-dynamic";
 
 export async function POST(req: Request) {
-  if (!(await isAdmin())) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
-
   let body: TelegramOrderPayload;
   try {
     body = (await req.json()) as TelegramOrderPayload;
@@ -22,13 +18,29 @@ export async function POST(req: Request) {
     );
   }
 
-  const result = await sendTelegramOrderNotification(body);
-  if (!result.ok) {
-    return NextResponse.json(
-      { ok: false, warning: result.error },
-      { status: 200 },
-    );
-  }
+  try {
+    if (body.order_id) {
+      const order = await getOrder(body.order_id);
+      if (order) {
+        const result = await notifyOrder(order, body.notification_type ?? "new");
+        const warning = "error" in result ? result.error : null;
+        const skipped = "skipped" in result ? result.skipped : false;
+        if (!result.ok) console.error("Telegram notification failed", warning);
+        return NextResponse.json(
+          result.ok ? { ok: true, skipped } : { ok: false, warning },
+        );
+      }
+    }
 
-  return NextResponse.json({ ok: true });
+    const result = await sendTelegramOrderNotification(body);
+    if (!result.ok) {
+      console.error("Telegram notification failed", result.error);
+      return NextResponse.json({ ok: false, warning: result.error }, { status: 200 });
+    }
+
+    return NextResponse.json({ ok: true });
+  } catch (error) {
+    console.error("Telegram notification failed", error);
+    return NextResponse.json({ ok: false, warning: "Telegram notification failed" }, { status: 200 });
+  }
 }

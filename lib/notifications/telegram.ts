@@ -79,15 +79,16 @@ export function formatTelegramOrderMessage(payload: TelegramOrderPayload) {
     payload.order_type === "dine_in"
       ? `Table: ${payload.table_number || "Not assigned"}`
       : payload.order_type === "delivery"
-        ? `Address: ${payload.delivery_address || "Not provided"}`
-        : `Pickup Time: ${payload.pickup_time || "ASAP"}`;
+        ? `Delivery Address: ${payload.delivery_address || "Not provided"}`
+        : payload.order_type === "takeaway"
+          ? `Pickup Time: ${payload.pickup_time || "ASAP"}`
+          : "";
 
   return escapeHtml(`${title}
 
 Order: #${payload.order_number}
 Type: ${label(payload.order_type, ORDER_TYPE_LABELS)}
-${locationLine}
-Customer: ${payload.customer_name || "Guest"}
+${locationLine ? `${locationLine}\n` : ""}Customer: ${payload.customer_name || "Guest"}
 Phone: ${payload.customer_phone || "Not provided"}
 
 Items:
