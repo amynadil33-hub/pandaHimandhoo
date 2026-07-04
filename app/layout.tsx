@@ -17,10 +17,43 @@ const fraunces = Fraunces({
 })
 
 export const metadata: Metadata = {
-  title: 'Panda Restaurant | Authentic Maldivian Flavours',
+  title: {
+    default: 'Panda Restaurant | Modern Island Dining in Himandhoo',
+    template: '%s | Panda Restaurant',
+  },
   description:
-    'Panda Restaurant serves authentic Maldivian favourites, fresh seafood, kothu roshi, biryani, fried rice and more. Dine in for warm island hospitality.',
-  generator: 'v0.app',
+    'Panda Restaurant is a modern island restaurant in Himandhoo Island, Alifu Alifu Atoll, Maldives, serving Maldivian favourites, fried rice, kothu roshi, biryani, pasta, sandwiches, breakfast and drinks.',
+  keywords: [
+    'Panda Restaurant',
+    'Himandhoo restaurant',
+    'Himandhoo Island',
+    'Alifu Alifu Atoll',
+    'Maldives restaurant',
+    'Maldivian food',
+    'kothu roshi',
+    'fried rice Maldives',
+    'restaurant in Himandhoo',
+    'island dining Maldives',
+  ],
+  openGraph: {
+    title: 'Panda Restaurant | Modern Island Dining in Himandhoo',
+    description:
+      'Fresh flavours, comforting meals and relaxed Maldivian island dining at Panda Restaurant in Himandhoo Island, Maldives.',
+    type: 'website',
+    images: ['/icon.svg'],
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'Panda Restaurant | Modern Island Dining in Himandhoo',
+    description:
+      'Fresh flavours, comforting meals and relaxed Maldivian island dining at Panda Restaurant in Himandhoo Island, Maldives.',
+    images: ['/icon.svg'],
+  },
+  icons: {
+    icon: '/icon.svg',
+    shortcut: '/icon.svg',
+    apple: '/icon.svg',
+  },
 }
 
 export const viewport: Viewport = {
