@@ -1,5 +1,5 @@
-import { createClient, type SupabaseClient } from '@supabase/supabase-js'
-import { priceOrder } from './pricing'
+import { createClient, type SupabaseClient } from "@supabase/supabase-js";
+import { priceOrder } from "./pricing";
 import type {
   Order,
   OrderItem,
@@ -8,39 +8,45 @@ import type {
   PaymentStatus,
   RestaurantSettings,
   RestaurantTable,
-} from './types'
+} from "./types";
+import {
+  orderToTelegramPayload,
+  sendTelegramOrderNotification,
+} from "@/lib/notifications/telegram";
 
-export { priceOrder }
+export { priceOrder };
 
 // ---------------------------------------------------------------------------
 // Supabase admin client (server only). Falls back to null when env is missing,
 // in which case the app uses an in-memory store so the preview still works.
 // ---------------------------------------------------------------------------
 function getAdminClient(): SupabaseClient | null {
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const serviceKey =
-    process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-  if (!url || !serviceKey) return null
-  return createClient(url, serviceKey, { auth: { persistSession: false } })
+    process.env.SUPABASE_SERVICE_ROLE_KEY ||
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+  if (!url || !serviceKey) return null;
+  return createClient(url, serviceKey, { auth: { persistSession: false } });
 }
 
 export function isSupabaseConfigured() {
   return Boolean(
     process.env.NEXT_PUBLIC_SUPABASE_URL &&
-      (process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY),
-  )
+    (process.env.SUPABASE_SERVICE_ROLE_KEY ||
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY),
+  );
 }
 
 // ---------------------------------------------------------------------------
 // Default settings + in-memory store seed
 // ---------------------------------------------------------------------------
 export const DEFAULT_SETTINGS: RestaurantSettings = {
-  id: 'default',
-  bank_name: 'Bank of Maldives',
-  bank_account_name: 'Panda Restaurant Pvt Ltd',
-  bank_account_number: '7730000123456',
+  id: "default",
+  bank_name: "Bank of Maldives",
+  bank_account_name: "Panda Restaurant Pvt Ltd",
+  bank_account_number: "7730000123456",
   payment_instructions:
-    'Transfer the total amount and upload your payment slip. Your order is confirmed once we verify the payment.',
+    "Transfer the total amount and upload your payment slip. Your order is confirmed once we verify the payment.",
   cash_enabled: true,
   bank_transfer_enabled: true,
   online_payment_enabled: false,
@@ -51,17 +57,17 @@ export const DEFAULT_SETTINGS: RestaurantSettings = {
   tax_percent: 8,
   delivery_fee_mvr: 30,
   minimum_order_mvr: 75,
-  delivery_area_note: 'We deliver across Himandhoo Island only.',
-  estimated_prep_time: '20–30 min',
-  estimated_delivery_time: '30–45 min',
-}
+  delivery_area_note: "We deliver across Himandhoo Island only.",
+  estimated_prep_time: "20–30 min",
+  estimated_delivery_time: "30–45 min",
+};
 
 type MemStore = {
-  orders: Order[]
-  tables: RestaurantTable[]
-  settings: RestaurantSettings
-  counter: number
-}
+  orders: Order[];
+  tables: RestaurantTable[];
+  settings: RestaurantSettings;
+  counter: number;
+};
 
 function seedTables(): RestaurantTable[] {
   return Array.from({ length: 8 }, (_, i) => ({
@@ -70,11 +76,11 @@ function seedTables(): RestaurantTable[] {
     qr_slug: `table-${i + 1}`,
     is_active: true,
     created_at: new Date().toISOString(),
-  }))
+  }));
 }
 
 // Persist across HMR reloads in dev.
-const g = globalThis as unknown as { __pandaStore?: MemStore }
+const g = globalThis as unknown as { __pandaStore?: MemStore };
 function mem(): MemStore {
   if (!g.__pandaStore) {
     g.__pandaStore = {
@@ -82,56 +88,56 @@ function mem(): MemStore {
       tables: seedTables(),
       settings: DEFAULT_SETTINGS,
       counter: 1000,
-    }
+    };
   }
-  return g.__pandaStore
+  return g.__pandaStore;
 }
 
 // ---------------------------------------------------------------------------
 // Pricing
 // ---------------------------------------------------------------------------
 export type NewOrderItem = {
-  menu_item_id: string | null
-  item_name: string
-  item_price_mvr: number
-  quantity: number
-  item_notes?: string | null
-}
+  menu_item_id: string | null;
+  item_name: string;
+  item_price_mvr: number;
+  quantity: number;
+  item_notes?: string | null;
+};
 
 export type NewOrderInput = {
-  order_type: Order['order_type']
-  table_id?: string | null
-  table_number?: string | null
-  customer_name?: string | null
-  customer_phone?: string | null
-  delivery_address?: string | null
-  delivery_landmark?: string | null
-  delivery_notes?: string | null
-  pickup_time?: string | null
-  payment_method: PaymentMethod
-  notes?: string | null
-  slip_image_url?: string | null
-  source?: string
-  items: NewOrderItem[]
-}
+  order_type: Order["order_type"];
+  table_id?: string | null;
+  table_number?: string | null;
+  customer_name?: string | null;
+  customer_phone?: string | null;
+  delivery_address?: string | null;
+  delivery_landmark?: string | null;
+  delivery_notes?: string | null;
+  pickup_time?: string | null;
+  payment_method: PaymentMethod;
+  notes?: string | null;
+  slip_image_url?: string | null;
+  source?: string;
+  items: NewOrderItem[];
+};
 
 function initialStatuses(
   method: PaymentMethod,
-  orderType: Order['order_type'],
+  orderType: Order["order_type"],
 ): { status: OrderStatus; payment_status: PaymentStatus } {
   switch (method) {
-    case 'bank_transfer':
-      return { status: 'payment_pending', payment_status: 'pending_review' }
-    case 'online':
-      return { status: 'payment_pending', payment_status: 'pending_review' }
-    case 'cash_at_table':
-      return { status: 'new', payment_status: 'pay_at_table' }
-    case 'cash_on_delivery':
-      return { status: 'new', payment_status: 'cash_on_delivery' }
-    case 'pay_at_pickup':
-      return { status: 'new', payment_status: 'pay_at_pickup' }
+    case "bank_transfer":
+      return { status: "payment_pending", payment_status: "pending_review" };
+    case "online":
+      return { status: "payment_pending", payment_status: "pending_review" };
+    case "cash_at_table":
+      return { status: "new", payment_status: "pay_at_table" };
+    case "cash_on_delivery":
+      return { status: "new", payment_status: "cash_on_delivery" };
+    case "pay_at_pickup":
+      return { status: "new", payment_status: "pay_at_pickup" };
     default:
-      return { status: 'new', payment_status: 'unpaid' }
+      return { status: "new", payment_status: "unpaid" };
   }
 }
 
@@ -139,40 +145,53 @@ function initialStatuses(
 // Settings
 // ---------------------------------------------------------------------------
 export async function getSettings(): Promise<RestaurantSettings> {
-  const db = getAdminClient()
-  if (!db) return mem().settings
-  const { data, error } = await db.from('restaurant_settings').select('*').limit(1).maybeSingle()
-  if (error || !data) return DEFAULT_SETTINGS
-  return { ...DEFAULT_SETTINGS, ...data }
+  const db = getAdminClient();
+  if (!db) return mem().settings;
+  const { data, error } = await db
+    .from("restaurant_settings")
+    .select("*")
+    .limit(1)
+    .maybeSingle();
+  if (error || !data) return DEFAULT_SETTINGS;
+  return { ...DEFAULT_SETTINGS, ...data };
 }
 
 // ---------------------------------------------------------------------------
 // Tables
 // ---------------------------------------------------------------------------
 export async function listTables(): Promise<RestaurantTable[]> {
-  const db = getAdminClient()
-  if (!db) return [...mem().tables].sort((a, b) => Number(a.table_number) - Number(b.table_number))
-  const { data } = await db.from('restaurant_tables').select('*').order('table_number')
-  return data ?? []
+  const db = getAdminClient();
+  if (!db)
+    return [...mem().tables].sort(
+      (a, b) => Number(a.table_number) - Number(b.table_number),
+    );
+  const { data } = await db
+    .from("restaurant_tables")
+    .select("*")
+    .order("table_number");
+  return data ?? [];
 }
 
-export async function getTableBySlug(slug: string): Promise<RestaurantTable | null> {
-  const db = getAdminClient()
-  if (!db) return mem().tables.find((t) => t.qr_slug === slug && t.is_active) ?? null
+export async function getTableBySlug(
+  slug: string,
+): Promise<RestaurantTable | null> {
+  const db = getAdminClient();
+  if (!db)
+    return mem().tables.find((t) => t.qr_slug === slug && t.is_active) ?? null;
   const { data } = await db
-    .from('restaurant_tables')
-    .select('*')
-    .eq('qr_slug', slug)
-    .eq('is_active', true)
-    .maybeSingle()
-  return data ?? null
+    .from("restaurant_tables")
+    .select("*")
+    .eq("qr_slug", slug)
+    .eq("is_active", true)
+    .maybeSingle();
+  return data ?? null;
 }
 
 export async function createTable(input: {
-  table_number: string
-  qr_slug: string
+  table_number: string;
+  qr_slug: string;
 }): Promise<RestaurantTable> {
-  const db = getAdminClient()
+  const db = getAdminClient();
   if (!db) {
     const table: RestaurantTable = {
       id: `table-${Date.now()}`,
@@ -180,86 +199,108 @@ export async function createTable(input: {
       qr_slug: input.qr_slug,
       is_active: true,
       created_at: new Date().toISOString(),
-    }
-    mem().tables.push(table)
-    return table
+    };
+    mem().tables.push(table);
+    return table;
   }
   const { data, error } = await db
-    .from('restaurant_tables')
-    .insert({ table_number: input.table_number, qr_slug: input.qr_slug, is_active: true })
-    .select('*')
-    .single()
-  if (error) throw new Error(error.message)
-  return data
+    .from("restaurant_tables")
+    .insert({
+      table_number: input.table_number,
+      qr_slug: input.qr_slug,
+      is_active: true,
+    })
+    .select("*")
+    .single();
+  if (error) throw new Error(error.message);
+  return data;
 }
 
 export async function updateTable(
   id: string,
-  patch: Partial<Pick<RestaurantTable, 'table_number' | 'qr_slug' | 'is_active'>>,
+  patch: Partial<
+    Pick<RestaurantTable, "table_number" | "qr_slug" | "is_active">
+  >,
 ): Promise<void> {
-  const db = getAdminClient()
+  const db = getAdminClient();
   if (!db) {
-    const t = mem().tables.find((x) => x.id === id)
-    if (t) Object.assign(t, patch)
-    return
+    const t = mem().tables.find((x) => x.id === id);
+    if (t) Object.assign(t, patch);
+    return;
   }
-  await db.from('restaurant_tables').update(patch).eq('id', id)
+  await db.from("restaurant_tables").update(patch).eq("id", id);
 }
 
 export async function deleteTable(id: string): Promise<void> {
-  const db = getAdminClient()
+  const db = getAdminClient();
   if (!db) {
-    g.__pandaStore!.tables = mem().tables.filter((t) => t.id !== id)
-    return
+    g.__pandaStore!.tables = mem().tables.filter((t) => t.id !== id);
+    return;
   }
-  await db.from('restaurant_tables').delete().eq('id', id)
+  await db.from("restaurant_tables").delete().eq("id", id);
 }
 
 // ---------------------------------------------------------------------------
 // Orders
 // ---------------------------------------------------------------------------
 export async function listOrders(): Promise<Order[]> {
-  const db = getAdminClient()
-  if (!db) return [...mem().orders].sort((a, b) => b.order_number - a.order_number)
+  const db = getAdminClient();
+  if (!db)
+    return [...mem().orders].sort((a, b) => b.order_number - a.order_number);
   const { data: orders } = await db
-    .from('orders')
-    .select('*')
-    .order('order_number', { ascending: false })
-  if (!orders) return []
-  const { data: items } = await db.from('order_items').select('*')
+    .from("orders")
+    .select("*")
+    .order("order_number", { ascending: false });
+  if (!orders) return [];
+  const { data: items } = await db.from("order_items").select("*");
   return orders.map((o) => ({
     ...o,
     items: (items ?? []).filter((i: OrderItem) => i.order_id === o.id),
-  }))
+  }));
 }
 
 export async function getOrder(id: string): Promise<Order | null> {
-  const db = getAdminClient()
-  if (!db) return mem().orders.find((o) => o.id === id) ?? null
-  const { data: order } = await db.from('orders').select('*').eq('id', id).maybeSingle()
-  if (!order) return null
-  const { data: items } = await db.from('order_items').select('*').eq('order_id', id)
-  return { ...order, items: items ?? [] }
+  const db = getAdminClient();
+  if (!db) return mem().orders.find((o) => o.id === id) ?? null;
+  const { data: order } = await db
+    .from("orders")
+    .select("*")
+    .eq("id", id)
+    .maybeSingle();
+  if (!order) return null;
+  const { data: items } = await db
+    .from("order_items")
+    .select("*")
+    .eq("order_id", id);
+  return { ...order, items: items ?? [] };
 }
 
 export async function createOrder(input: NewOrderInput): Promise<Order> {
-  const settings = await getSettings()
+  const settings = await getSettings();
   const pricing = priceOrder(
-    input.items.map((i) => ({ price_mvr: i.item_price_mvr, quantity: i.quantity })),
+    input.items.map((i) => ({
+      price_mvr: i.item_price_mvr,
+      quantity: i.quantity,
+    })),
     input.order_type,
     settings,
-  )
-  const { status, payment_status } = initialStatuses(input.payment_method, input.order_type)
+  );
+  const { status, payment_status } = initialStatuses(
+    input.payment_method,
+    input.order_type,
+  );
   const estimated =
-    input.order_type === 'delivery' ? settings.estimated_delivery_time : settings.estimated_prep_time
+    input.order_type === "delivery"
+      ? settings.estimated_delivery_time
+      : settings.estimated_prep_time;
 
-  const db = getAdminClient()
-  const now = new Date().toISOString()
+  const db = getAdminClient();
+  const now = new Date().toISOString();
 
   if (!db) {
-    const store = mem()
-    store.counter += 1
-    const orderId = `order-${store.counter}`
+    const store = mem();
+    store.counter += 1;
+    const orderId = `order-${store.counter}`;
     const items: OrderItem[] = input.items.map((it, idx) => ({
       id: `${orderId}-item-${idx}`,
       order_id: orderId,
@@ -269,7 +310,7 @@ export async function createOrder(input: NewOrderInput): Promise<Order> {
       quantity: it.quantity,
       item_notes: it.item_notes ?? null,
       line_total_mvr: it.item_price_mvr * it.quantity,
-    }))
+    }));
     const order: Order = {
       id: orderId,
       order_number: store.counter,
@@ -291,19 +332,25 @@ export async function createOrder(input: NewOrderInput): Promise<Order> {
       tax_mvr: pricing.tax,
       total_mvr: pricing.total,
       notes: input.notes ?? null,
-      source: input.source ?? 'website',
+      source: input.source ?? "website",
       estimated_ready_time: estimated,
       slip_image_url: input.slip_image_url ?? null,
+      new_order_telegram_sent: false,
+      confirmed_order_telegram_sent: false,
+      last_notification_sent_at: null,
       created_at: now,
       updated_at: now,
       items,
-    }
-    store.orders.unshift(order)
-    return order
+    };
+    store.orders.unshift(order);
+    notifyOrder(order, "new").catch((err) =>
+      console.warn("Telegram order notification failed", err),
+    );
+    return order;
   }
 
   const { data: orderRow, error } = await db
-    .from('orders')
+    .from("orders")
     .insert({
       order_type: input.order_type,
       table_id: input.table_id ?? null,
@@ -323,13 +370,14 @@ export async function createOrder(input: NewOrderInput): Promise<Order> {
       tax_mvr: pricing.tax,
       total_mvr: pricing.total,
       notes: input.notes ?? null,
-      source: input.source ?? 'website',
+      source: input.source ?? "website",
       estimated_ready_time: estimated,
       slip_image_url: input.slip_image_url ?? null,
     })
-    .select('*')
-    .single()
-  if (error || !orderRow) throw new Error(error?.message ?? 'Failed to create order')
+    .select("*")
+    .single();
+  if (error || !orderRow)
+    throw new Error(error?.message ?? "Failed to create order");
 
   const itemRows = input.items.map((it) => ({
     order_id: orderRow.id,
@@ -339,27 +387,75 @@ export async function createOrder(input: NewOrderInput): Promise<Order> {
     quantity: it.quantity,
     item_notes: it.item_notes ?? null,
     line_total_mvr: it.item_price_mvr * it.quantity,
-  }))
-  const { data: items } = await db.from('order_items').insert(itemRows).select('*')
-  return { ...orderRow, items: items ?? [] }
+  }));
+  const { data: items } = await db
+    .from("order_items")
+    .insert(itemRows)
+    .select("*");
+  const order = { ...orderRow, items: items ?? [] };
+  notifyOrder(order, "new").catch((err) =>
+    console.warn("Telegram order notification failed", err),
+  );
+  return order;
 }
 
 export async function updateOrder(
   id: string,
   patch: { status?: OrderStatus; payment_status?: PaymentStatus },
 ): Promise<Order | null> {
-  const db = getAdminClient()
+  const db = getAdminClient();
   if (!db) {
-    const order = mem().orders.find((o) => o.id === id)
-    if (!order) return null
-    if (patch.status) order.status = patch.status
-    if (patch.payment_status) order.payment_status = patch.payment_status
-    order.updated_at = new Date().toISOString()
-    return order
+    const order = mem().orders.find((o) => o.id === id);
+    if (!order) return null;
+    const wasConfirmed = order.status === "confirmed";
+    if (patch.status) order.status = patch.status;
+    if (patch.payment_status) order.payment_status = patch.payment_status;
+    order.updated_at = new Date().toISOString();
+    if (!wasConfirmed && order.status === "confirmed") {
+      notifyOrder(order, "confirmed").catch((err) =>
+        console.warn("Telegram confirmed notification failed", err),
+      );
+    }
+    return order;
   }
+  const existing = await getOrder(id);
   await db
-    .from('orders')
+    .from("orders")
     .update({ ...patch, updated_at: new Date().toISOString() })
-    .eq('id', id)
-  return getOrder(id)
+    .eq("id", id);
+  const order = await getOrder(id);
+  if (
+    order &&
+    existing?.status !== "confirmed" &&
+    order.status === "confirmed"
+  ) {
+    notifyOrder(order, "confirmed").catch((err) =>
+      console.warn("Telegram confirmed notification failed", err),
+    );
+  }
+  return order;
+}
+
+export async function notifyOrder(order: Order, type: "new" | "confirmed") {
+  const flag =
+    type === "new"
+      ? "new_order_telegram_sent"
+      : "confirmed_order_telegram_sent";
+  if (order[flag]) return { ok: true, skipped: true };
+  const result = await sendTelegramOrderNotification(
+    orderToTelegramPayload(order, type),
+  );
+  if (result.ok) {
+    const now = new Date().toISOString();
+    order[flag] = true;
+    order.last_notification_sent_at = now;
+    const db = getAdminClient();
+    if (db) {
+      await db
+        .from("orders")
+        .update({ [flag]: true, last_notification_sent_at: now })
+        .eq("id", order.id);
+    }
+  }
+  return result;
 }

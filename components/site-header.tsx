@@ -1,5 +1,6 @@
 'use client'
 
+import Image from 'next/image'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { useState } from 'react'
@@ -15,16 +16,15 @@ export function SiteHeader() {
   return (
     <header className="sticky top-0 z-50 border-b border-border/70 bg-background/85 backdrop-blur-md">
       <div className="mx-auto flex h-16 max-w-6xl items-center justify-between gap-4 px-4 md:h-20 md:px-6">
-        <Link href="/" className="flex items-center gap-2" onClick={() => setOpen(false)}>
-          <span className="flex size-9 items-center justify-center rounded-full bg-primary font-heading text-lg font-semibold text-primary-foreground">
-            P
-          </span>
-          <span className="flex flex-col leading-none">
-            <span className="font-heading text-lg font-semibold tracking-tight">{site.name}</span>
-            <span className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
-              Himandhoo · Maldives
-            </span>
-          </span>
+        <Link href="/" className="flex items-center" onClick={() => setOpen(false)}>
+          <Image
+            src="/icon.svg"
+            alt="Panda Restaurant logo"
+            width={180}
+            height={80}
+            priority
+            className="h-12 w-auto md:h-16"
+          />
         </Link>
 
         <nav className="hidden items-center gap-8 md:flex">

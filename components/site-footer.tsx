@@ -1,3 +1,4 @@
+import Image from 'next/image'
 import Link from 'next/link'
 import { MapPin, Phone, Mail, Clock, Camera, ThumbsUp } from 'lucide-react'
 import { navLinks, site } from '@/lib/site'
@@ -7,12 +8,13 @@ export function SiteFooter() {
     <footer className="border-t border-border bg-primary text-primary-foreground">
       <div className="mx-auto grid max-w-6xl gap-10 px-4 py-12 md:grid-cols-4 md:px-6 md:py-16">
         <div className="md:col-span-1">
-          <div className="flex items-center gap-2">
-            <span className="flex size-9 items-center justify-center rounded-full bg-primary-foreground font-heading text-lg font-semibold text-primary">
-              P
-            </span>
-            <span className="font-heading text-xl font-semibold">{site.name}</span>
-          </div>
+          <Image
+            src="/icon.svg"
+            alt="Panda Restaurant logo"
+            width={180}
+            height={80}
+            className="h-12 w-auto"
+          />
           <p className="mt-4 text-sm leading-relaxed text-primary-foreground/80">
             {site.tagline}. Home-style island cooking, fresh seafood, and warm hospitality on
             Himandhoo Island.

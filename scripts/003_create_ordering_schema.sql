@@ -67,6 +67,9 @@ create table if not exists public.orders (
   source               text not null default 'website',
   estimated_ready_time text,
   slip_image_url       text,
+  new_order_telegram_sent boolean not null default false,
+  confirmed_order_telegram_sent boolean not null default false,
+  last_notification_sent_at timestamptz,
   created_at           timestamptz not null default now(),
   updated_at           timestamptz not null default now()
 );
@@ -105,6 +108,10 @@ create table if not exists public.payments (
 
 create index if not exists orders_status_idx on public.orders (status);
 create index if not exists orders_created_idx on public.orders (created_at desc);
+
+alter table public.orders add column if not exists new_order_telegram_sent boolean not null default false;
+alter table public.orders add column if not exists confirmed_order_telegram_sent boolean not null default false;
+alter table public.orders add column if not exists last_notification_sent_at timestamptz;
 create index if not exists order_items_order_idx on public.order_items (order_id);
 
 -- ---------------------------------------------------------------------------
