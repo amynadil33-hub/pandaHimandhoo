@@ -1,6 +1,6 @@
-"use client"
+"use client";
 
-import { useState } from "react"
+import { useState } from "react";
 import {
   Phone,
   MapPin,
@@ -11,7 +11,9 @@ import {
   Receipt,
   ExternalLink,
   Loader2,
-} from "lucide-react"
+  Send,
+  Volume2,
+} from "lucide-react";
 import {
   type Order,
   type OrderStatus,
@@ -19,47 +21,60 @@ import {
   ORDER_STATUS_LABELS,
   PAYMENT_METHOD_LABELS,
   NEXT_STATUS_FOR_TYPE,
-} from "@/lib/orders/types"
-import { OrderStatusBadge, PaymentStatusBadge } from "@/components/order/status-badges"
-import { formatMvr, formatTime } from "@/lib/format"
+} from "@/lib/orders/types";
+import {
+  OrderStatusBadge,
+  PaymentStatusBadge,
+} from "@/components/order/status-badges";
+import { formatMvr, formatTime } from "@/lib/format";
+import { cn } from "@/lib/utils";
 
 function nextStatus(order: Order): OrderStatus | null {
-  const flow = NEXT_STATUS_FOR_TYPE[order.order_type]
-  const idx = flow.indexOf(order.status)
-  if (idx < 0 || idx >= flow.length - 1) return null
-  return flow[idx + 1]
+  const flow = NEXT_STATUS_FOR_TYPE[order.order_type];
+  const idx = flow.indexOf(order.status);
+  if (idx < 0 || idx >= flow.length - 1) return null;
+  return flow[idx + 1];
 }
 
 export function AdminOrderCard({
   order,
   onChanged,
+  highlighted = false,
 }: {
-  order: Order
-  onChanged: () => void
+  order: Order;
+  onChanged: () => void;
+  highlighted?: boolean;
 }) {
-  const [busy, setBusy] = useState(false)
-  const [expanded, setExpanded] = useState(false)
+  const [busy, setBusy] = useState(false);
+  const [expanded, setExpanded] = useState(false);
 
   async function patch(body: Record<string, unknown>) {
-    setBusy(true)
+    setBusy(true);
     try {
       await fetch(`/api/orders/${order.id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(body),
-      })
-      onChanged()
+      });
+      onChanged();
     } finally {
-      setBusy(false)
+      setBusy(false);
     }
   }
 
-  const upcoming = nextStatus(order)
-  const awaitingPayment = order.payment_status === "pending_review"
-  const isClosed = order.status === "completed" || order.status === "cancelled"
+  const upcoming = nextStatus(order);
+  const awaitingPayment = order.payment_status === "pending_review";
+  const isClosed = order.status === "completed" || order.status === "cancelled";
 
   return (
-    <div className="rounded-xl border border-border bg-card p-4 shadow-sm">
+    <div
+      className={cn(
+        "rounded-xl border border-border bg-card p-4 shadow-sm transition-all",
+        highlighted
+          ? "animate-pulse border-amber-400 bg-amber-50 ring-4 ring-amber-200"
+          : "",
+      )}
+    >
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
           <div className="flex items-center gap-2">
@@ -72,7 +87,9 @@ export function AdminOrderCard({
           <p className="mt-1 flex items-center gap-1 text-xs text-muted-foreground">
             <Clock className="size-3" />
             {formatTime(order.created_at)}
-            {order.estimated_ready_time ? ` · ETA ${order.estimated_ready_time}` : ""}
+            {order.estimated_ready_time
+              ? ` · ETA ${order.estimated_ready_time}`
+              : ""}
           </p>
         </div>
         <div className="flex shrink-0 flex-col items-end gap-1.5">
@@ -81,10 +98,32 @@ export function AdminOrderCard({
         </div>
       </div>
 
+      <div className="mt-2 flex flex-wrap gap-1.5 text-[11px] font-medium">
+        {order.new_order_telegram_sent ||
+        order.confirmed_order_telegram_sent ? (
+          <span className="inline-flex items-center gap-1 rounded-full bg-emerald-100 px-2 py-0.5 text-emerald-800">
+            <Send className="size-3" /> Telegram sent
+          </span>
+        ) : (
+          <span className="inline-flex items-center gap-1 rounded-full bg-amber-100 px-2 py-0.5 text-amber-800">
+            <Send className="size-3" /> Telegram pending
+          </span>
+        )}
+        {highlighted ? (
+          <span className="inline-flex items-center gap-1 rounded-full bg-blue-100 px-2 py-0.5 text-blue-800">
+            <Volume2 className="size-3" /> Sound alert triggered
+          </span>
+        ) : null}
+      </div>
+
       {/* Customer info */}
-      {(order.customer_name || order.customer_phone || order.delivery_address) && (
+      {(order.customer_name ||
+        order.customer_phone ||
+        order.delivery_address) && (
         <div className="mt-3 space-y-1 text-sm">
-          {order.customer_name ? <p className="font-medium">{order.customer_name}</p> : null}
+          {order.customer_name ? (
+            <p className="font-medium">{order.customer_name}</p>
+          ) : null}
           {order.customer_phone ? (
             <a
               href={`tel:${order.customer_phone}`}
@@ -112,32 +151,42 @@ export function AdminOrderCard({
         className="mt-3 flex w-full items-center justify-between rounded-lg bg-muted/50 px-3 py-2 text-left text-sm"
       >
         <span className="font-medium">
-          {order.items.reduce((n, i) => n + i.quantity, 0)} item(s) · {formatMvr(order.total_mvr)}
+          {order.items.reduce((n, i) => n + i.quantity, 0)} item(s) ·{" "}
+          {formatMvr(order.total_mvr)}
         </span>
-        <ChevronRight className={`size-4 transition-transform ${expanded ? "rotate-90" : ""}`} />
+        <ChevronRight
+          className={`size-4 transition-transform ${expanded ? "rotate-90" : ""}`}
+        />
       </button>
       {expanded ? (
         <ul className="mt-2 space-y-1.5 px-1 text-sm">
           {order.items.map((item) => (
             <li key={item.id} className="flex justify-between gap-2">
               <span>
-                <span className="text-muted-foreground">{item.quantity}×</span> {item.item_name}
+                <span className="text-muted-foreground">{item.quantity}×</span>{" "}
+                {item.item_name}
                 {item.item_notes ? (
-                  <span className="block text-xs text-muted-foreground">{item.item_notes}</span>
+                  <span className="block text-xs text-muted-foreground">
+                    {item.item_notes}
+                  </span>
                 ) : null}
               </span>
               <span className="shrink-0">{formatMvr(item.line_total_mvr)}</span>
             </li>
           ))}
           <li className="flex justify-between border-t border-border pt-1.5 font-semibold">
-            <span>Total ({PAYMENT_METHOD_LABELS[order.payment_method ?? "online"]})</span>
+            <span>
+              Total ({PAYMENT_METHOD_LABELS[order.payment_method ?? "online"]})
+            </span>
             <span>{formatMvr(order.total_mvr)}</span>
           </li>
         </ul>
       ) : null}
 
       {order.notes ? (
-        <p className="mt-2 rounded-lg bg-amber-50 px-3 py-2 text-xs text-amber-800">Note: {order.notes}</p>
+        <p className="mt-2 rounded-lg bg-amber-50 px-3 py-2 text-xs text-amber-800">
+          Note: {order.notes}
+        </p>
       ) : null}
 
       {/* Slip review */}
@@ -159,11 +208,17 @@ export function AdminOrderCard({
         <div className="mt-4 flex flex-wrap gap-2">
           {awaitingPayment ? (
             <button
-              onClick={() => patch({ payment_status: "paid", status: "confirmed" })}
+              onClick={() =>
+                patch({ payment_status: "paid", status: "confirmed" })
+              }
               disabled={busy}
               className="inline-flex items-center gap-1.5 rounded-lg bg-emerald-600 px-3 py-1.5 text-sm font-semibold text-white transition-colors hover:bg-emerald-700 disabled:opacity-60"
             >
-              {busy ? <Loader2 className="size-4 animate-spin" /> : <Check className="size-4" />}
+              {busy ? (
+                <Loader2 className="size-4 animate-spin" />
+              ) : (
+                <Check className="size-4" />
+              )}
               Verify payment
             </button>
           ) : null}
@@ -173,7 +228,11 @@ export function AdminOrderCard({
               disabled={busy}
               className="inline-flex items-center gap-1.5 rounded-lg bg-primary px-3 py-1.5 text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary/90 disabled:opacity-60"
             >
-              {busy ? <Loader2 className="size-4 animate-spin" /> : <ChevronRight className="size-4" />}
+              {busy ? (
+                <Loader2 className="size-4 animate-spin" />
+              ) : (
+                <ChevronRight className="size-4" />
+              )}
               Mark {ORDER_STATUS_LABELS[upcoming]}
             </button>
           ) : null}
@@ -188,5 +247,5 @@ export function AdminOrderCard({
         </div>
       ) : null}
     </div>
-  )
+  );
 }
