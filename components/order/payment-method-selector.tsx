@@ -20,11 +20,14 @@ function cashOptionFor(orderType: OrderType): Option {
       icon: Banknote,
     }
   }
-  if (orderType === 'takeaway') {
+  if (orderType === 'takeaway' || orderType === 'online') {
     return {
       method: 'pay_at_pickup',
-      title: 'Pay at Pickup',
-      description: 'Pay with cash when you collect your order.',
+      title: orderType === 'online' ? 'Pay at Restaurant' : 'Pay at Pickup',
+      description:
+        orderType === 'online'
+          ? 'Pay with cash when the restaurant confirms your order.'
+          : 'Pay with cash when you collect your order.',
       icon: Banknote,
     }
   }
